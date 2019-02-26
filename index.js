@@ -2,15 +2,30 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const session = require('express-session');
+// const KnexSessionStore = require('connect-session-knex')(session);
 
 const db = require('./database/dbConfig.js');
 const Users = require('./users/users-module.js');
 
 const server = express();
 
+const sessionConfig = {
+  name: 'banana',
+  secret: 'it is a secret!',
+  cookie: {
+    maxAge: 1000 * 60 * 15,
+    secure: false,
+  },
+  httpOnly: true, // you want this to be true 99% of the time
+  resave: false, 
+  saveUninitialized: false,  
+};
+
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
+server.use(session(sessionConfig));
 
 // GET /
 
@@ -48,7 +63,8 @@ server.post('/api/register', (req, res) => {
       .then(user => {
         // check that passwords match
         if (user && bcrypt.compareSync(password, user.password)) {
-          res.status(200).json({ message: `Welcome ${user.username}!` });
+          req.session.user = user;
+          res.status(200).json({ message: `Welcome ${user.username}, sending back a cookie!` });
         } else {
           res.status(401).json({ message: 'Password or Username is not correct. Please try again.' });
         }
@@ -57,27 +73,35 @@ server.post('/api/register', (req, res) => {
         res.status(500).json(error);
       });
   });
-  
+
   function restricted(req, res, next) {
-    const { username, password } = req.headers;
-  
-    if (username && password) {
-      Users.findBy({ username })
-        .first()
-        .then(user => {
-          if (user && bcrypt.compareSync(password, user.password)) {
-            next();
-          } else {
-            res.status(401).json({ message: 'Password or Username is not correct. Please try again.' });
-          }
-        })
-        .catch(error => {
-          res.status(500).json({ message: 'Ran into an unexpected error' });
-        });
+    if (req.session && req.session.user) {
+      next();
     } else {
-      res.status(400).json({ message: 'You shall not pass! Please provide Username and Password.' });
+      res.status(401).json({ message: 'You shall not pass!' });
     }
   }
+  
+  // function restricted(req, res, next) {
+  //   const { username, password } = req.headers;
+  
+  //   if (username && password) {
+  //     Users.findBy({ username })
+  //       .first()
+  //       .then(user => {
+  //         if (user && bcrypt.compareSync(password, user.password)) {
+  //           next();
+  //         } else {
+  //           res.status(401).json({ message: 'Password or Username is not correct. Please try again.' });
+  //         }
+  //       })
+  //       .catch(error => {
+  //         res.status(500).json({ message: 'Ran into an unexpected error' });
+  //       });
+  //   } else {
+  //     res.status(400).json({ message: 'You shall not pass! Please provide Username and Password.' });
+  //   }
+  // }
 
   // GET /API/USERS
   
