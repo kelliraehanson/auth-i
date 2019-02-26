@@ -138,11 +138,9 @@ server.post('/api/register', (req, res) => {
     if (req.session) {
       req.session.destroy(err => {
         if (err) {
-          res.send(
-            'Opps! There was an error logging out.'
-          );
+          res.send('Opps! There was an error logging out.');
         } else {
-          res.send('bye');
+          res.send(`Bye!`);
         }
       });
     } else {

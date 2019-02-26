@@ -1,54 +1,94 @@
 import React, { Component } from 'react';
 import './App.css';
 import axios from 'axios';
+import { NavLink, Route, withRouter} from 'react-router-dom';
+
+// import Book from './components/Book';
+// import Books from './components/Books';
+
+// import Login from './components/Login';
+
 
 class App extends Component {
   constructor(props) {
     super(props);
-
     this.state = {
-      username: " ",
-      password: " ",
+      books: [],
       loggedIn: false
     };
   }
+
+  componentDidMount() {
+    if (localStorage.getItem('jwt')) {this.setState({loggedIn: true})}
+    axios
+    .get('https://bookr-app-backend.herokuapp.com/api/book-collection')
+    .then(response => {
+      this.setState({ books: response.data })
+    })
+    .catch(err => console.log(err));
+  }
+
+  updateBooks(params) {
+    this.setState({ books: params })
+  }
+
+  deleteBook = id => {
+    axios
+    .delete(`http://localhost:8000/api/book-collection/${id}`)
+    .then(response => {
+      this.setState({ books: response.data })
+    })
+    .catch(err => console.log(err))
+  }
+
+
   render() {
+    console.log(this.state.loggedIn);
     return (
-      <div className="everything">
-      <div className="welcome">
-      <h1>Welcome!</h1>
-      <div>
-        <br></br>
-        <div className= "login">
+      <div className="App">
+      <SearchBar />
 
-        <form className="input">
-         <input
-         type="text"
-          name="username"
-          placeholder="Username"
-          value={this.state.username}
-          onChange={this.changes}
-              />
-          <hr />
-          <input
-           type="text"
-           name="password"
-           placeholder="password"
-           value={this.state.password}
-           onChange={this.changes}
-              />
-              <hr />
 
-         <button onClick={this.logInOther}>
-         <strong>LOGIN</strong>
-         </button>
-          </form>
-        </div>
+
+      <div className="navLink">
+
+      <NavLink exact to='/'>
+      <h1>BOOK<span>R</span></h1>
+      </NavLink>
+      
+      <NavLink to={`/bookabout/${this.props.id}`}>
+      
+      </NavLink>
       </div>
+
+      
+      {/* <LoginView /> */}
+      {/* <h1>BOOK<span>R</span></h1> */}
+
+      <Route exact path='/' component={Login}/>
+
+      <div className="container">
+
+      <Route path='/books' component={props => (
+        <Books 
+      books={this.state.books} /> )} />
+
       </div>
+
+      <Route
+      path={`/bookabout/:id`}
+      render={props => (
+       
+        <BookAboutView  {...props} /> 
+      )} />
+
       </div>
-     
-    )}
+    );
+  }
 }
 
-export default App;
+const LoginView = Authenticate(Books)(Login);
+
+export default withRouter(App);
+
+// export default App;
