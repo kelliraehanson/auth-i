@@ -3,7 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-// const KnexSessionStore = require('connect-session-knex')(session);
+const KnexSessionStore = require('connect-session-knex')(session);
 
 const db = require('./database/dbConfig.js');
 const Users = require('./users/users-module.js');
@@ -20,6 +20,14 @@ const sessionConfig = {
   httpOnly: true, // you want this to be true 99% of the time
   resave: false, 
   saveUninitialized: false,  
+
+  store: new KnexSessionStore({
+    knex: db,
+    tablename: 'sessions',
+    sidfieldname: 'sid', // this is no something that will go through the browser
+    createtable: true,
+    clearInterval: 1000 * 60 * 60, 
+  }),
 };
 
 server.use(helmet());
@@ -126,7 +134,22 @@ server.post('/api/register', (req, res) => {
     }
   });
 
-
+  server.get('/api/logout', (req, res) => {
+    if (req.session) {
+      req.session.destroy(err => {
+        if (err) {
+          res.send(
+            'Opps! There was an error logging out.'
+          );
+        } else {
+          res.send('bye');
+        }
+      });
+    } else {
+      res.end();
+    }
+  });
+  
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
